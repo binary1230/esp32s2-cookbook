@@ -1,17 +1,23 @@
 all : reboot
 
+# Reboot a board that is sitting in ROM download mode into its freshly-flashed
+# app. On the S3 you can usually skip this stub entirely and just append esptool's
+# built-in flag to whatever command you run, e.g.:
+#   esptool.py --chip esp32s3 --before no-reset --after watchdog-reset chip_id
+# The stub does the identical RTC-watchdog write itself, independent of esptool.
 reboot : bootload_reboot_stub.bin
-	esptool.py --before no_reset --after no_reset --port /dev/ttyACM0 load_ram bootload_reboot_stub.bin 
+	esptool.py --chip esp32s3 --no-stub --before no_reset --after no_reset --port /dev/ttyACM0 load_ram bootload_reboot_stub.bin
 
 bootload_reboot_stub.bin : bootload_reboot_stub.o
-	xtensa-esp32s2-elf-objcopy -O binary bootload_reboot_stub.o bootload_reboot_stub.bin
+	xtensa-esp32s3-elf-objcopy -O binary bootload_reboot_stub.o bootload_reboot_stub.bin
 
 #IDF_PATH:=/home/cnlohr/esp/esp-idf
 
+# Only three IDF include dirs are needed -- the S3 soc register headers plus
+# esp_common (for esp_assert.h, pulled in by soc.h). No app/component headers.
 bootload_reboot_stub.o : bootload_reboot_stub.c
-	xtensa-esp32s2-elf-gcc  -mlongcalls  -I$(IDF_PATH)/components/hal/include -I$(IDF_PATH)/components/hal/esp32s2/include -I$(IDF_PATH)/components/esp_wifi/include -I$(IDF_PATH)/components/esp_event/include -I$(IDF_PATH)/components/soc/include -I$(IDF_PATH)/components/soc/esp32s2/include -I$(IDF_PATH)/components/esp_common/include -I$(IDF_PATH)/components/driver/include -I$(IDF_PATH)/components/esp_hw_support/include -I$(IDF_PATH)/components/esp_rom/include -I$(IDF_PATH)/components/log/include -I$(IDF_PATH)/components/esp_system/include -I$(IDF_PATH)/components/driver/esp32s2/include -I$(IDF_PATH)/components/esp_ringbuf/include -I$(IDF_PATH)/components/heap/include -I$(IDF_PATH)/components/esp_rom/include/esp32s2 -I$(IDF_PATH)/components/newlib/platform_include -I$(IDF_PATH)/components/esp_timer/include -I$(IDF_PATH)/components/freertos/include -I$(IDF_PATH)/components/freertos/port/xtensa/include -I$(IDF_PATH)/components/freertos/include/esp_additions/freertos -I$(IDF_PATH)/components/xtensa/include -I$(IDF_PATH)/components/xtensa/esp32s2/include -I$(IDF_PATH)/components/driver/include -I$(IDF_PATH)/components/esp_lcd/include -I$(IDF_PATH)/components/esp_lcd/interface -I$(IDF_PATH)/components/esp_hw_support/include/soc -I$(IDF_PATH)/components/esp_hw_support/port -I$(IDF_PATH)/components/esp_hw_support/port/esp32s2/private_include -I../../components -I../../components/hdw-qma6981 -I../../main/display -I../../components/hdw-btn -I../../components/hdw-touch -I../../components/hdw-led -I../../main -I../../build/config -I$(IDF_PATH)/components/hal/include -I$(IDF_PATH)/components/hal/esp32s2/include -I$(IDF_PATH)/components/esp_wifi/include -I$(IDF_PATH)/components/esp_event/include -I$(IDF_PATH)/components/soc/include -I$(IDF_PATH)/components/soc/esp32s2/include -I$(IDF_PATH)/components/esp_common/include -I$(IDF_PATH)/components/driver/include -I$(IDF_PATH)/components/esp_hw_support/include -I$(IDF_PATH)/components/esp_rom/include -I$(IDF_PATH)/components/log/include -I$(IDF_PATH)/components/esp_system/include -I$(IDF_PATH)/components/driver/esp32s2/include -I$(IDF_PATH)/components/esp_ringbuf/include -I$(IDF_PATH)/components/heap/include -I$(IDF_PATH)/components/esp_rom/include/esp32s2 -I$(IDF_PATH)/components/newlib/platform_include -I$(IDF_PATH)/components/esp_timer/include -I$(IDF_PATH)/components/freertos/include -I$(IDF_PATH)/components/freertos/port/xtensa/include -I$(IDF_PATH)/components/freertos/include/esp_additions/freertos -I$(IDF_PATH)/components/xtensa/include -I$(IDF_PATH)/components/xtensa/esp32s2/include -I$(IDF_PATH)/components/driver/include -I$(IDF_PATH)/components/esp_lcd/include -I$(IDF_PATH)/components/esp_lcd/interface -I$(IDF_PATH)/components/esp_hw_support/include/soc -I$(IDF_PATH)/components/esp_hw_support/port -I$(IDF_PATH)/components/esp_hw_support/port/esp32s2/private_include -I../../components -I../../components/hdw-qma6981 -I../../main/display -I../../components/hdw-btn -I../../components/hdw-touch -I../../components/hdw-led -I../../main -I../../build/config -DHAVE_CONFIG_H  -ffunction-sections -fdata-sections -Wall -Werror=all -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=deprecated-declarations -Wextra -Wno-unused-parameter -Wno-sign-compare -ggdb -O2 -fmacro-prefix-map=/home/cnlohr/git/esp32-c3-playground=. -fmacro-prefix-map=$(IDF_PATH)=IDF -fstrict-volatile-bitfields -Wno-error=unused-but-set-variable -fno-jump-tables -fno-tree-switch-conversion bootload_reboot_stub.c -T esp32_s2_stub.ld -o bootload_reboot_stub.o -nodefaultlibs -nostartfiles
-	xtensa-esp32s2-elf-objdump -S bootload_reboot_stub.o > bootload_reboot_stub.txt
+	xtensa-esp32s3-elf-gcc -mlongcalls -I$(IDF_PATH)/components/soc/esp32s3/include -I$(IDF_PATH)/components/soc/include -I$(IDF_PATH)/components/esp_common/include -Wall -Wextra -O2 -fno-jump-tables -fno-tree-switch-conversion bootload_reboot_stub.c -T esp32_s3_stub.ld -o bootload_reboot_stub.o -nodefaultlibs -nostartfiles
+	xtensa-esp32s3-elf-objdump -S bootload_reboot_stub.o > bootload_reboot_stub.txt
 
 clean :
 	rm -rf *.o ~* bootload_reboot_stub.bin bootload_reboot_stub.o bootload_reboot_stub.txt
-
